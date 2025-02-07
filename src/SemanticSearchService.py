@@ -1,7 +1,8 @@
 import openai
 import pandas as pd
 import re
-from openai.embeddings_utils import cosine_similarity
+# from openai.embeddings_utils import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity
 from website.sender import Sender, MSG_TYPE_SEARCH_STEP
 
 from Util import setup_logger
@@ -168,18 +169,32 @@ class BatchOpenAISemanticSearchService:
     def __init__(self, config, sender: Sender = None):
         self.config = config
         openai.api_key = config.get('llm_service').get('openai_api').get('api_key')
+        import os
+        os.environ["OPENAI_API_BASE"] = "https://api.xiaoai.plus/v1"
+        os.environ["OPENAI_API_KEY"] = "sk-ZlUIfpKgpq13MKn7Ac3574A47cEb45A59b6a7b0e9bC3E84a"
         self.sender = sender
 
     @staticmethod
     def batch_call_embeddings(texts, chunk_size=1000):
         texts = [text.replace("\n", " ") for text in texts]
-        embeddings = []
+        # embeddings = []
+        # for i in range(0, len(texts), chunk_size):
+        #     response = openai.Embedding.create(
+        #         input=texts[i: i + chunk_size], engine=BASE_MODEL
+        #     )
+        #     embeddings += [r["embedding"] for r in response["data"]]
+        # return embeddings
+
+        from langchain_openai import OpenAIEmbeddings
+        embeddings = OpenAIEmbeddings()
+        all_embeddings = []
+
         for i in range(0, len(texts), chunk_size):
-            response = openai.Embedding.create(
-                input=texts[i: i + chunk_size], engine=BASE_MODEL
-            )
-            embeddings += [r["embedding"] for r in response["data"]]
-        return embeddings
+            chunk = texts[i: i + chunk_size]
+            chunk_embeddings = embeddings.embed_documents(chunk)  # 使用 langchain 的方法获取嵌入向量
+            all_embeddings.extend(chunk_embeddings)
+
+        return all_embeddings
 
     @staticmethod
     def compute_embeddings_for_text_df(text_df: pd.DataFrame):
@@ -199,7 +214,13 @@ class BatchOpenAISemanticSearchService:
         print(f'search_similar() text: {target_text}')
         embedding = BatchOpenAISemanticSearchService.batch_call_embeddings([target_text])[0]
         text_df = BatchOpenAISemanticSearchService.compute_embeddings_for_text_df(text_df)
-        text_df['similarities'] = text_df['embedding'].apply(lambda x: cosine_similarity(x, embedding))
+
+        import numpy as np
+        embedding = np.array(embedding).reshape(1, -1)
+
+        # 计算每个嵌入向量与目标嵌入向量的余弦相似度
+        text_df['similarities'] = text_df['embedding'].apply(lambda x: cosine_similarity(np.array(x).reshape(1, -1), embedding)[0][0])
+        # text_df['similarities'] = text_df['embedding'].apply(lambda x: cosine_similarity(x, embedding))
         result_df = text_df.sort_values('similarities', ascending=False).head(n)
         result_df['rank'] = range(1, len(result_df) + 1)
         result_df['docno'] = range(1, len(result_df) + 1)

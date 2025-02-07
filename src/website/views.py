@@ -6,10 +6,10 @@ import tracemalloc
 import psutil
 from flask import Blueprint, render_template, request
 
-from SearchGPTService import SearchGPTService
-from FrontendService import FrontendService
-from Util import setup_logger
-from website.sender import exporting_progress, Sender
+from src.SearchGPTService import SearchGPTService
+from src.FrontendService import FrontendService
+from src.Util import setup_logger
+from src.website.sender import exporting_progress, Sender
 
 logger = setup_logger('Views')
 views = Blueprint('views', __name__)

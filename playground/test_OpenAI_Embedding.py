@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from openai.embeddings_utils import get_embedding, cosine_similarity
 
-from Util import get_project_root
+from src.Util import get_project_root
 
 BASE_MODEL = "text-embedding-ada-002"  # default embedding of faiss-openai
 
@@ -41,7 +41,7 @@ def search_similar(df: pd.DataFrame, target_text, n=3, pprint=True):
 
 
 def compute_embeddings_2(text_df, model=BASE_MODEL, chunk_size=1000):
-    print(f'compute_embeddings_2() len(texts): {len(df)}')
+    print(f'compute_embeddings_2() len(texts): {len(text_df)}')
     text_df['text'] = text_df['text'].apply(lambda x: x.replace("\n", " "))
     embeddings = []
     for i in range(0, len(texts), chunk_size):
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     with open(os.path.join(get_project_root(), 'src/config/config.yaml')) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
         openai.api_key = config.get('openai_api').get('api_key')
-
+        openai.api_base = "https://api.xiaoai.plus/v1"
         # text_df = compute_embeddings(text_df)
         # result_df = search_using_cosine_similarity(text_df, 'what is chatgpt?')
         # print(result_df)

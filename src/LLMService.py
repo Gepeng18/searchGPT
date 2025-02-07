@@ -105,7 +105,8 @@ class OpenAIService(LLMService):
         open_api_key = config.get('llm_service').get('openai_api').get('api_key')
         if open_api_key is None:
             raise Exception("OpenAI API key is not set.")
-        openai.api_key = open_api_key
+        os.environ["OPENAI_API_BASE"] = "https://api.xiaoai.plus/v1"
+        os.environ["OPENAI_API_KEY"] = "sk-ZlUIfpKgpq13MKn7Ac3574A47cEb45A59b6a7b0e9bC3E84a"
 
     @storage_cached('openai', 'prompt')
     def call_api(self, prompt: str):
@@ -119,31 +120,55 @@ class OpenAIService(LLMService):
 
         if model in ['gpt-3.5-turbo', 'gpt-4']:
             try:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": "You are a helpful search engine."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    stream=is_stream
-                )
+                # response = openai.ChatCompletion.create(
+                #     model=model,
+                #     messages=[
+                #         {"role": "system", "content": "You are a helpful search engine."},
+                #         {"role": "user", "content": prompt}
+                #     ],
+                #     stream=is_stream
+                # )
+                from langchain_openai import OpenAIEmbeddings,ChatOpenAI
+                from langchain.schema import HumanMessage, SystemMessage
+
+                # 初始化 ChatOpenAI 模型
+                llm = ChatOpenAI(model=model, streaming=is_stream)
+
+                # 构造消息
+                messages = [
+                    SystemMessage(content="You are a helpful search engine."),
+                    HumanMessage(content=prompt)
+                ]
+
             except Exception as ex:
                 raise ex
 
-            if is_stream:
-                collected_messages = []
-                # iterate through the stream of events
-                for chunk in response:
-                    chunk_message = chunk['choices'][0]['delta'].get("content", None)  # extract the message
-                    if chunk_message is not None:
-                        if self.sender is not None:
-                            self.sender.send_message(msg_type=MSG_TYPE_OPEN_AI_STREAM, msg=chunk_message)
-                        collected_messages.append(chunk_message)  # save the message
+            from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+            # 定义流式响应处理逻辑
+            class CustomStreamingCallback(StreamingStdOutCallbackHandler):
+                def __init__(self, sender=None):
+                    self.sender = sender
+                    self.collected_messages = []
 
-                full_reply_content = ''.join(collected_messages)
+                def on_llm_new_token(self, token: str, **kwargs) -> None:
+                    # 处理新的 token
+                    if self.sender is not None:
+                        self.sender.send_message(msg_type=MSG_TYPE_OPEN_AI_STREAM, msg=token)
+                    self.collected_messages.append(token)
+
+                def get_full_reply(self):
+                    return ''.join(self.collected_messages)
+
+            # 创建自定义回调处理器
+            custom_callback = CustomStreamingCallback(sender=self.sender)
+            # 调用模型并传入回调处理器
+            if is_stream:
+                response = llm(messages, callbacks=[custom_callback])
+                full_reply_content = custom_callback.get_full_reply()
                 return full_reply_content
             else:
-                return response.choices[0].message.content
+                response = llm(messages)
+                return response.content
         else:
             try:
                 response = openai.Completion.create(

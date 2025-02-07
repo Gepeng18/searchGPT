@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from text_extract.html.abc_html_extract import AbstractHtmlExtractSvc
+from src.text_extract.html.abc_html_extract import AbstractHtmlExtractSvc
 
 
 class BeautifulSoupSvc(AbstractHtmlExtractSvc):

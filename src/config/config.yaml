@@ -2,9 +2,9 @@ general:
   language: en-US # It will determine bing search market and LLM prompt language. en-US / zh-CN / it-IT / fr-FR / de-DE / es-ES / ja-JP / ko-KR / pt-BR / ru-RU / etc.
 source_service:
   is_use_source: true # grounded or not grounded. If not grounded, meaning just Q&A via LLM
-  is_enable_bing_search: true
-  is_enable_doc_search: false
-  doc_search_path:
+  is_enable_bing_search: false
+  is_enable_doc_search: true
+  doc_search_path: /Users/gepeng/Downloads/工具_doc
   bing_search:
     end_point: https://api.bing.microsoft.com
     subscription_key:
@@ -14,7 +14,7 @@ source_service:
 llm_service:
   provider: openai # openai/goose_ai
   openai_api:
-    api_key:
+    api_key: sk-ZlUIfpKgpq13MKn7Ac3574A47cEb45A59b6a7b0e9bC3E84a
     # model: gpt-3.5-turbo is the best one. Details: https://platform.openai.com/docs/models/gpt-3-5.
     # model: gpt-4 is in limited preview
     # model: text-babbage-001

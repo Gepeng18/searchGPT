@@ -1,7 +1,7 @@
 import docx
 
-from Util import split_sentences_from_paragraph
-from text_extract.doc.abc_doc_extract import AbstractDocExtractSvc
+from src.Util import split_sentences_from_paragraph
+from src.text_extract.doc.abc_doc_extract import AbstractDocExtractSvc
 
 
 class DocxSvc(AbstractDocExtractSvc):
