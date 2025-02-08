@@ -18,3 +18,4 @@ data*.properties
 /venv/*
 cache
 *.pickle
+/.cache/

@@ -23,7 +23,9 @@ def remove_substrings(strings):
 
     return result
 
-
+"""
+    get_longest_common_word_sequences 函数提取的是连续的公共词序列，而不是间断的词序列。
+"""
 def get_longest_common_word_sequences(paragraph1, paragraph2, k=10):
     """
     Find the longest common subsequences of words between two paragraphs
@@ -57,6 +59,7 @@ def get_longest_common_word_sequences(paragraph1, paragraph2, k=10):
     min_sequence_len = 10
     longest_sequences = [sequence for sequence in longest_sequences if len(sequence) >= min_sequence_len]
     return longest_sequences
+
 
 
 def split_with_delimiters(string, delimiter_list):

@@ -29,6 +29,11 @@ class FrontendService:
             }
             return prompt_examples_json
 
+    """
+    1、重新排序引用编号：确保 response_text 中的引用编号从 [1] 开始连续编号。
+    2、更新响应文本：将 response_text 中的引用编号替换为新的连续编号，并对同一个句子中的多个引用编号进行排序。
+    3、更新数据框：筛选出与响应文本相关的来源信息，并更新数据框中的引用编号，使其与响应文本中的引用编号一致。
+    """
     def get_data_json(self, response_text, gpt_input_text_df):
         def create_response_json_object(text, type):
             return {"text": text, "type": type}
@@ -52,6 +57,11 @@ class FrontendService:
             in_scope_source_df['url_id'] = in_scope_source_df['url_id'].map(url_id_map)
             return response_text, in_scope_source_df
 
+        """
+        1、分割响应文本：将响应文本分割成多个部分，每个部分要么是一个引用编号，要么是一段普通文本，要么是一个换行符。
+        2、生成 JSON 对象：根据每个部分的内容类型，生成相应的 JSON 对象，类型包括 "footnote"（引用编号）、"newline"（换行符）和 "response"（普通文本）。
+        3、返回结构化数据：返回一个包含多个 JSON 对象的列表，便于后续处理和展示。
+        """
         def get_response_json(response_text):
             def create_response_json_object(text, type):
                 return {"text": text, "type": type}
@@ -71,6 +81,20 @@ class FrontendService:
                     response_json.append(create_response_json_object(sentence, "response"))
             return response_json
 
+        """
+            output:
+            source_json:
+                [
+                    {"footnote": "[1]", "domain": "example1.com", "url": "http://example1.com", "title": "Example 1", "text": "Snippet 1"},
+                    {"footnote": "[2]", "domain": "example2.com", "url": "http://example2.com", "title": "Example 2", "text": "Snippet 2"}
+                ]
+            source_text：
+                [1] http://example1.com
+                  Full text of source 1
+                  Additional text of source 1
+                [2] http://example2.com
+                  Full text of source 2
+        """
         def get_source_json(in_scope_source_df):
             in_scope_source_df.loc[:, 'docno'] = in_scope_source_df['docno'].astype(int)
             in_scope_source_df.sort_values('docno', inplace=True)
@@ -93,6 +117,27 @@ class FrontendService:
             source_json = sorted(source_json, key=lambda x: x['footnote'])
             return source_json, source_text
 
+        """
+        假设：
+        response_text 是 "This is an example [1]. See the source [2] for more details."
+        source_text 是 [1] http://example1.com\nFull text of source 1\n[2] http://example2.com\nFull text of source 2
+        执行 get_explainability_json(response_text, source_text) 后：
+        response_explain_json：
+            [
+                {"text": "This is an example ", "type": "word", "color": ""},
+                {"text": "[1]", "type": "keyword", "color": "#ffe3e8"},
+                {"text": ". See the source ", "type": "word", "color": ""},
+                {"text": "[2]", "type": "keyword", "color": "#f1e1ff"},
+                {"text": " for more details.", "type": "word", "color": ""}
+            ]
+        source_explain_json：
+            [
+                {"text": "[1]", "type": "keyword", "color": "#ffe3e8"},
+                {"text": " http://example1.com\nFull text of source 1\n", "type": "word", "color": ""},
+                {"text": "[2]", "type": "keyword", "color": "#f1e1ff"},
+                {"text": " http://example2.com\nFull text of source 2", "type": "word", "color": ""}
+            ]
+        """
         def get_explainability_json(response_text, source_text):
             def get_colors():
                 return ['#ffe3e8', '#f1e1ff', '#c5d5ff', '#c5efff', '#d6fffa', '#e7ffe7', '#f7ffa7', '#fff3b3', '#ffdfdf', '#ffcaca']
